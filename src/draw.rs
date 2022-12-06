@@ -1,11 +1,17 @@
 use bevy::prelude::{
-    debug, shape, Assets, Commands, Component, Entity, Handle, Mesh, MouseButton, PbrBundle, Query,
-    Res, ResMut, Transform, Vec3, With,
+    debug, shape, Assets, Commands, Component, Entity, EventWriter, Handle, Mesh, MouseButton,
+    PbrBundle, Query, Res, ResMut, Transform, Vec3, With,
 };
 use bevy_input::Input;
 use bevy_mod_raycast::Intersection;
 
 use crate::{BoxDrawResources, ShapeDrawRaycastSet};
+
+pub enum ShapeDrawEvent {
+    /// Spawned is sent when a new shape is drawn, containing the newly created entity
+    Spawned(Entity),
+    Finished,
+}
 
 #[derive(Component)]
 pub(crate) struct Editing(pub Vec3);
@@ -17,6 +23,7 @@ pub(crate) fn draw_box(
     resources: Res<BoxDrawResources>,
     mut commands: Commands,
     edit_box: Query<Entity, With<Editing>>,
+    mut event_writer: EventWriter<ShapeDrawEvent>,
 ) {
     if keys.just_pressed(MouseButton::Left) {
         let mut transform = Transform::default();
@@ -46,17 +53,20 @@ pub(crate) fn draw_box(
             resources.initial_size,
         )));
 
-        commands
+        let e = commands
             .spawn(PbrBundle {
                 mesh: mesh.clone(),
                 material: resources.material.clone(),
                 transform,
                 ..Default::default()
             })
-            .insert(Editing(origin));
+            .insert(Editing(origin))
+            .id();
+        event_writer.send(ShapeDrawEvent::Spawned(e));
     } else if keys.just_released(MouseButton::Left) {
         let e = edit_box.get_single().unwrap();
         commands.entity(e).remove::<Editing>();
+        event_writer.send(ShapeDrawEvent::Finished);
     }
 }
 

@@ -2,46 +2,52 @@ mod draw;
 mod raycast;
 
 use bevy::prelude::{
-    Assets, CoreStage, FromWorld, Handle, IntoSystemDescriptor, Plugin, Resource, StandardMaterial,
-    World,
+    AlphaMode, Assets, CoreStage, FromWorld, Handle, IntoSystemDescriptor, Plugin, Resource,
+    StandardMaterial, World,
 };
 use bevy_mod_raycast::{DefaultPluginState, DefaultRaycastingPlugin, RaycastSystem};
 
+pub use draw::ShapeDrawEvent;
 use draw::*;
-pub use raycast::{ShapeDrawRaycastMesh, ShapeDrawRaycastSet, ShapeDrawRaycastSource};
+use raycast::ShapeDrawRaycastSet;
+pub use raycast::{ShapeDrawRaycastMesh, ShapeDrawRaycastSource};
 
+struct BaseDrawShapePlugin;
+
+impl Plugin for BaseDrawShapePlugin {
+    fn build(&self, app: &mut bevy::prelude::App) {
+        app.init_resource::<BoxDrawResources>();
+        app.add_plugin(DefaultRaycastingPlugin::<ShapeDrawRaycastSet>::default())
+            .add_system_to_stage(
+                CoreStage::First,
+                raycast::update_raycast_with_cursor
+                    .before(RaycastSystem::BuildRays::<ShapeDrawRaycastSet>),
+            );
+        app.add_event::<ShapeDrawEvent>()
+            .add_system(draw_box)
+            .add_system(edit_box);
+    }
+}
+
+/// Simple Plugin for drawing shapes with the mouse pointer
 pub struct DrawShapePlugin;
 
 impl Plugin for DrawShapePlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.init_resource::<BoxDrawResources>();
-        app.add_plugin(DefaultRaycastingPlugin::<ShapeDrawRaycastSet>::default())
-            .insert_resource(DefaultPluginState::<ShapeDrawRaycastSet>::default())
-            .add_system_to_stage(
-                CoreStage::First,
-                raycast::update_raycast_with_cursor
-                    .before(RaycastSystem::BuildRays::<ShapeDrawRaycastSet>),
-            );
-        app.add_system(draw_box).add_system(edit_box);
+        app.insert_resource(DefaultPluginState::<ShapeDrawRaycastSet>::default());
+        app.add_plugin(BaseDrawShapePlugin);
     }
 }
 
-/// The Draw Shape Plugin but with a debugcursor for the raycasting
+/// [`DrawShapePlugin`] but with a debugcursor for the raycasting
 pub struct DrawShapeDebugPlugin;
 
 impl Plugin for DrawShapeDebugPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.init_resource::<BoxDrawResources>();
-        app.add_plugin(DefaultRaycastingPlugin::<ShapeDrawRaycastSet>::default())
-            .insert_resource(
-                DefaultPluginState::<ShapeDrawRaycastSet>::default().with_debug_cursor(),
-            )
-            .add_system_to_stage(
-                CoreStage::First,
-                raycast::update_raycast_with_cursor
-                    .before(RaycastSystem::BuildRays::<ShapeDrawRaycastSet>),
-            );
-        app.add_system(draw_box).add_system(edit_box);
+        app.insert_resource(
+            DefaultPluginState::<ShapeDrawRaycastSet>::default().with_debug_cursor(),
+        );
+        app.add_plugin(BaseDrawShapePlugin);
     }
 }
 
@@ -63,11 +69,12 @@ impl FromWorld for BoxDrawResources {
 
         let material = materials.add(StandardMaterial {
             base_color: bevy::prelude::Color::rgba(
-                0x00 as f32 / 0xFF as f32,
+                0x10 as f32 / 0xFF as f32,
+                0x10 as f32 / 0xFF as f32,
                 0xF0 as f32 / 0xFF as f32,
-                0x00 as f32 / 0xFF as f32,
-                127.,
+                0.5,
             ),
+            alpha_mode: AlphaMode::Blend,
             ..Default::default()
         });
 

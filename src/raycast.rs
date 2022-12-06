@@ -10,9 +10,8 @@ pub type ShapeDrawRaycastSource = RaycastSource<ShapeDrawRaycastSet>;
 
 pub(crate) fn update_raycast_with_cursor(
     mut cursor: EventReader<CursorMoved>,
-    mut query: Query<&mut RaycastSource<ShapeDrawRaycastSet>>,
+    mut query: Query<&mut ShapeDrawRaycastSource>,
 ) {
-    // Grab the most recent cursor event if it exists:
     let cursor_position = match cursor.iter().last() {
         Some(cursor_moved) => cursor_moved.position,
         None => return,
