@@ -7,8 +7,8 @@ use bevy::prelude::{
 };
 use bevy_mod_raycast::{DefaultPluginState, DefaultRaycastingPlugin, RaycastSystem};
 
-pub use draw::ShapeDrawEvent;
 use draw::*;
+pub use draw::{DrawShapeEvent, Shape};
 use raycast::ShapeDrawRaycastSet;
 pub use raycast::{ShapeDrawRaycastMesh, ShapeDrawRaycastSource};
 
@@ -23,7 +23,7 @@ impl Plugin for BaseDrawShapePlugin {
                 raycast::update_raycast_with_cursor
                     .before(RaycastSystem::BuildRays::<ShapeDrawRaycastSet>),
             );
-        app.add_event::<ShapeDrawEvent>()
+        app.add_event::<DrawShapeEvent>()
             .add_system(draw_box)
             .add_system(edit_box);
     }

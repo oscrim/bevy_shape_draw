@@ -7,10 +7,17 @@ use bevy_mod_raycast::Intersection;
 
 use crate::{BoxDrawResources, ShapeDrawRaycastSet};
 
-pub enum ShapeDrawEvent {
+pub enum DrawShapeEvent {
     /// Spawned is sent when a new shape is drawn, containing the newly created entity
     Spawned(Entity),
-    Finished,
+    Finished(Entity),
+}
+
+/// This component is added to everything drawn within this plugin.
+/// It contains the shape and the size of the object
+#[derive(Debug, Component)]
+pub enum Shape {
+    Box(Vec3),
 }
 
 #[derive(Component)]
@@ -23,7 +30,7 @@ pub(crate) fn draw_box(
     resources: Res<BoxDrawResources>,
     mut commands: Commands,
     edit_box: Query<Entity, With<Editing>>,
-    mut event_writer: EventWriter<ShapeDrawEvent>,
+    mut event_writer: EventWriter<DrawShapeEvent>,
 ) {
     if keys.just_pressed(MouseButton::Left) {
         let mut transform = Transform::default();
@@ -61,24 +68,29 @@ pub(crate) fn draw_box(
                 ..Default::default()
             })
             .insert(Editing(origin))
+            .insert(Shape::Box(Vec3::new(
+                resources.initial_size,
+                resources.initial_height,
+                resources.initial_size,
+            )))
             .id();
-        event_writer.send(ShapeDrawEvent::Spawned(e));
+        event_writer.send(DrawShapeEvent::Spawned(e));
     } else if keys.just_released(MouseButton::Left) {
         let e = edit_box.get_single().unwrap();
         commands.entity(e).remove::<Editing>();
-        event_writer.send(ShapeDrawEvent::Finished);
+        event_writer.send(DrawShapeEvent::Finished(e));
     }
 }
 
 pub(crate) fn edit_box(
-    mut e_box: Query<(&Handle<Mesh>, &mut Transform, &Editing)>,
+    mut e_box: Query<(&Handle<Mesh>, &mut Transform, &Editing, &mut Shape)>,
     query: Query<&Intersection<ShapeDrawRaycastSet>>,
     keys: Res<Input<MouseButton>>,
     mut meshes: ResMut<Assets<Mesh>>,
     resources: Res<BoxDrawResources>,
 ) {
     if keys.pressed(MouseButton::Left) {
-        if let Ok((handle, mut transform, edit_origin)) = e_box.get_single_mut() {
+        if let Ok((handle, mut transform, edit_origin, mut shape)) = e_box.get_single_mut() {
             if let Some(mesh) = meshes.get_mut(handle) {
                 let mut opposite = Vec3::default();
 
@@ -100,6 +112,14 @@ pub(crate) fn edit_box(
 
                 let x = dx.abs();
                 let z = dz.abs();
+
+                match &mut *shape {
+                    Shape::Box(size) => {
+                        size.x = x;
+                        size.y = resources.initial_height;
+                        size.z = z;
+                    }
+                }
 
                 let b = shape::Box::new(x, resources.initial_height, z);
 

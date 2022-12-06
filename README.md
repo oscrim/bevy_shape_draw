@@ -1,4 +1,11 @@
 # bevy_shape_draw
+<div align="center">
+
+[![crates.io](https://img.shields.io/crates/v/bevy_shape_draw)](https://crates.io/crates/bevy_shape_draw)
+[![Bevy tracking](https://img.shields.io/badge/Bevy%20tracking-released%20version-lightblue)](https://github.com/bevyengine/bevy/blob/main/docs/plugins_guidelines.md#main-branch-tracking)
+
+</div>
+
 A [Bevy](https://github.com/bevyengine/bevy) plugin for drawing a shape using raycasting in 3d space with a mouse. This plugin is build on and relies on [`bevy_mod_raycast`](https://github.com/aevyrie/bevy_mod_picking).
 
 The only shape that can be drawn at the moment is a box of fixed height
@@ -31,4 +38,8 @@ Finally, mark any meshes that you want to be able to draw shapes on.
 
 ```shell
 cargo run --example simple
+```
+
+```shell
+cargo run --example events
 ```
