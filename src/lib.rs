@@ -24,7 +24,7 @@ impl Plugin for BaseDrawShapePlugin {
                     .before(RaycastSystem::BuildRays::<ShapeDrawRaycastSet>),
             );
         app.add_event::<DrawShapeEvent>()
-            .add_system(draw_box)
+            .add_system_to_stage(CoreStage::First, draw_box)
             .add_system(edit_box);
     }
 }
