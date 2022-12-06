@@ -1,6 +1,6 @@
 [package]
 name = "bevy_shape_draw"
-version = "0.1.0"
+version = "0.1.1"
 authors = [
     "Oscar Rimsby <oscar.rimsby@mobilaris.se>",
     "Mobilaris Industrial Solutions",
