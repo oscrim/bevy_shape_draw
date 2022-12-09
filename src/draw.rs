@@ -1,16 +1,67 @@
 use bevy::prelude::{
-    debug, shape, Assets, Commands, Component, Entity, EventWriter, Handle, Mesh, MouseButton,
-    PbrBundle, Query, Res, ResMut, Transform, Vec3, With,
+    debug, shape, AlphaMode, Assets, Commands, Component, Entity, EventReader, EventWriter,
+    FromWorld, Handle, Local, Mesh, MouseButton, PbrBundle, Query, Res, ResMut, Resource,
+    StandardMaterial, Transform, Vec3, With, World,
 };
 use bevy_input::Input;
 use bevy_mod_raycast::Intersection;
 
-use crate::{BoxDrawResources, ShapeDrawRaycastSet};
+use crate::ShapeDrawRaycastSet;
 
+#[derive(Resource)]
+pub struct BoxDrawResources {
+    pub material: Handle<StandardMaterial>,
+    /// The box created must have an initial size which is then changed
+    pub initial_size: f32,
+    /// The box will start with an initial height
+    pub initial_height: f32,
+}
+
+impl FromWorld for BoxDrawResources {
+    fn from_world(world: &mut World) -> Self {
+        let world = world.cell();
+        let mut materials = world
+            .get_resource_mut::<Assets<StandardMaterial>>()
+            .unwrap();
+
+        let material = materials.add(StandardMaterial {
+            base_color: bevy::prelude::Color::rgba(
+                0x10 as f32 / 0xFF as f32,
+                0x10 as f32 / 0xFF as f32,
+                0xF0 as f32 / 0xFF as f32,
+                0.5,
+            ),
+            alpha_mode: AlphaMode::Blend,
+            ..Default::default()
+        });
+
+        Self {
+            material,
+            initial_size: 0.01,
+            initial_height: 0.2,
+        }
+    }
+}
+
+pub(crate) fn keep_enabled(
+    mut event_writer: EventWriter<DrawStateEvent>,
+    state: Res<DrawingState>,
+) {
+    if let DrawingState::Disabled = *state {
+        event_writer.send(DrawStateEvent::Enable);
+    }
+}
+
+#[derive(Copy, Clone)]
 pub enum DrawShapeEvent {
     /// Spawned is sent when a new shape is drawn, containing the newly created entity
     Spawned(Entity),
     Finished(Entity),
+}
+
+pub enum DrawStateEvent {
+    Enable,
+    Disable,
 }
 
 /// This component is added to everything drawn within this plugin.
@@ -20,8 +71,32 @@ pub enum Shape {
     Box(Vec3),
 }
 
+#[derive(Resource)]
+pub(crate) enum DrawingState {
+    Idle,
+    Disabled,
+}
+
+impl Default for DrawingState {
+    fn default() -> Self {
+        Self::Disabled
+    }
+}
+
 #[derive(Component)]
 pub(crate) struct Editing(pub Vec3);
+
+pub(crate) fn draw_state(
+    mut event_reader: EventReader<DrawStateEvent>,
+    mut state: ResMut<DrawingState>,
+) {
+    for ev in event_reader.iter() {
+        match ev {
+            DrawStateEvent::Enable => *state = DrawingState::Idle,
+            DrawStateEvent::Disable => *state = DrawingState::Disabled,
+        }
+    }
+}
 
 pub(crate) fn draw_box(
     mut meshes: ResMut<Assets<Mesh>>,
@@ -31,7 +106,21 @@ pub(crate) fn draw_box(
     mut commands: Commands,
     edit_box: Query<Entity, With<Editing>>,
     mut event_writer: EventWriter<DrawShapeEvent>,
+    mut event_queue: Local<Vec<DrawShapeEvent>>,
+    state: Res<DrawingState>,
 ) {
+    // We wait one frame before sending out the event to give time to spawn the entity
+    let mut next_event = event_queue.pop();
+    while next_event.is_some() {
+        event_writer.send(next_event.unwrap());
+        next_event = event_queue.pop();
+    }
+
+    match *state {
+        DrawingState::Idle => {}
+        _ => return,
+    }
+
     if keys.just_pressed(MouseButton::Left) {
         let mut transform = Transform::default();
         let mut origin = Vec3::default();
@@ -74,11 +163,11 @@ pub(crate) fn draw_box(
                 resources.initial_size,
             )))
             .id();
-        event_writer.send(DrawShapeEvent::Spawned(e));
+        event_queue.push(DrawShapeEvent::Spawned(e));
     } else if keys.just_released(MouseButton::Left) {
         let e = edit_box.get_single().unwrap();
         commands.entity(e).remove::<Editing>();
-        event_writer.send(DrawShapeEvent::Finished(e));
+        event_queue.push(DrawShapeEvent::Finished(e));
     }
 }
 
@@ -88,7 +177,13 @@ pub(crate) fn edit_box(
     keys: Res<Input<MouseButton>>,
     mut meshes: ResMut<Assets<Mesh>>,
     resources: Res<BoxDrawResources>,
+    state: Res<DrawingState>,
 ) {
+    match *state {
+        DrawingState::Idle => {}
+        DrawingState::Disabled => return,
+    }
+
     if keys.pressed(MouseButton::Left) {
         if let Ok((handle, mut transform, edit_origin, mut shape)) = e_box.get_single_mut() {
             if let Some(mesh) = meshes.get_mut(handle) {

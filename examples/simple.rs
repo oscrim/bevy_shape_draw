@@ -10,7 +10,7 @@ use bevy_shape_draw::{DrawShapeDebugPlugin, ShapeDrawRaycastMesh, ShapeDrawRayca
 fn main() {
     let mut app = App::new();
     app.add_plugins(DefaultPlugins);
-    app.add_plugin(DrawShapeDebugPlugin);
+    app.add_plugin(DrawShapeDebugPlugin::default());
 
     app.add_startup_system(setup);
     app.run();

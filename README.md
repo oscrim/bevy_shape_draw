@@ -2,6 +2,7 @@
 <div align="center">
 
 [![crates.io](https://img.shields.io/crates/v/bevy_shape_draw)](https://crates.io/crates/bevy_shape_draw)
+[![docs.rs](https://docs.rs/bevy_shape_draw/badge.svg)](https://docs.rs/bevy_shape_draw)
 [![Bevy tracking](https://img.shields.io/badge/Bevy%20tracking-released%20version-lightblue)](https://github.com/bevyengine/bevy/blob/main/docs/plugins_guidelines.md#main-branch-tracking)
 
 </div>

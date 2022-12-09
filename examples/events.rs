@@ -1,22 +1,30 @@
 use bevy::{
     prelude::{
-        info, shape, App, Assets, Camera3dBundle, Color, Commands, EventReader, Mesh, PbrBundle,
-        PointLight, PointLightBundle, Query, ResMut, StandardMaterial, Transform, Vec3,
+        info, shape, App, Assets, Camera3dBundle, Color, Commands, EventReader, EventWriter,
+        KeyCode, Mesh, PbrBundle, PointLight, PointLightBundle, Query, Res, ResMut,
+        StandardMaterial, Transform, Vec3,
     },
     DefaultPlugins,
 };
+use bevy_input::Input;
 use bevy_shape_draw::{
-    DrawShapeDebugPlugin, DrawShapeEvent, Shape, ShapeDrawRaycastMesh, ShapeDrawRaycastSource,
+    DrawShapeDebugPlugin, DrawShapeEvent, DrawStateEvent, DrawingboardEvent, Shape,
+    ShapeDrawRaycastMesh, ShapeDrawRaycastSource,
 };
 
 fn main() {
     let mut app = App::new();
     app.add_plugins(DefaultPlugins);
-    app.add_plugin(DrawShapeDebugPlugin);
+    app.add_plugin(DrawShapeDebugPlugin {
+        always_enabled: false,
+        ..Default::default()
+    });
 
     app.add_startup_system(setup);
     app.add_system(spawned);
     app.add_system(finished);
+    app.add_system(start_drawing);
+    app.add_system(stop_drawing);
     app.run();
 }
 
@@ -86,5 +94,27 @@ fn finished(mut event_reader: EventReader<DrawShapeEvent>, query: Query<(&Transf
             }
             _ => {}
         }
+    }
+}
+
+fn start_drawing(
+    mut drawingboard_writer: EventWriter<DrawingboardEvent>,
+    mut state_writer: EventWriter<DrawStateEvent>,
+    keys: Res<Input<KeyCode>>,
+) {
+    if keys.just_pressed(KeyCode::Q) {
+        drawingboard_writer.send(DrawingboardEvent::Spawn(0.0));
+        state_writer.send(DrawStateEvent::Enable);
+    }
+}
+
+fn stop_drawing(
+    mut drawingboard_writer: EventWriter<DrawingboardEvent>,
+    mut state_writer: EventWriter<DrawStateEvent>,
+    keys: Res<Input<KeyCode>>,
+) {
+    if keys.just_pressed(KeyCode::E) {
+        drawingboard_writer.send(DrawingboardEvent::Despawn);
+        state_writer.send(DrawStateEvent::Disable);
     }
 }

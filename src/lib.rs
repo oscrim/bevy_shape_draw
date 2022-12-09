@@ -1,87 +1,104 @@
 mod draw;
+mod drawingboard;
 mod raycast;
 
-use bevy::prelude::{
-    AlphaMode, Assets, CoreStage, FromWorld, Handle, IntoSystemDescriptor, Plugin, Resource,
-    StandardMaterial, World,
-};
+use bevy::prelude::{CoreStage, IntoSystemDescriptor, Plugin};
 use bevy_mod_raycast::{DefaultPluginState, DefaultRaycastingPlugin, RaycastSystem};
 
 use draw::*;
-pub use draw::{DrawShapeEvent, Shape};
+pub use draw::{BoxDrawResources, DrawShapeEvent, DrawStateEvent, Shape};
+use drawingboard::spawn_drawingboard;
+pub use drawingboard::{DrawingboardEvent, DrawingboardResource};
 use raycast::ShapeDrawRaycastSet;
 pub use raycast::{ShapeDrawRaycastMesh, ShapeDrawRaycastSource};
 
-struct BaseDrawShapePlugin;
+struct BaseDrawShapePlugin {
+    pub always_enabled: bool,
+    pub enable_drawingboard: bool,
+}
 
 impl Plugin for BaseDrawShapePlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.init_resource::<BoxDrawResources>();
+        // Raycasting
         app.add_plugin(DefaultRaycastingPlugin::<ShapeDrawRaycastSet>::default())
             .add_system_to_stage(
                 CoreStage::First,
                 raycast::update_raycast_with_cursor
                     .before(RaycastSystem::BuildRays::<ShapeDrawRaycastSet>),
             );
-        app.add_event::<DrawShapeEvent>()
+
+        // Drawing
+        app.init_resource::<BoxDrawResources>()
+            .init_resource::<DrawingState>()
+            .add_event::<DrawShapeEvent>()
+            .add_event::<DrawStateEvent>()
             .add_system_to_stage(CoreStage::First, draw_box)
-            .add_system(edit_box);
+            .add_system(edit_box)
+            .add_system(draw_state);
+
+        // Drawingboard
+        if self.enable_drawingboard {
+            app.init_resource::<DrawingboardResource>()
+                .add_event::<DrawingboardEvent>()
+                .add_system(spawn_drawingboard);
+        }
+
+        if self.always_enabled {
+            app.add_system(keep_enabled);
+        }
     }
 }
 
-/// Simple Plugin for drawing shapes with the mouse pointer
-pub struct DrawShapePlugin;
+/// Simple Plugin for drawing shapes with the mouse pointer.
+/// Will by default always have drawing enabled
+pub struct DrawShapePlugin {
+    pub always_enabled: bool,
+    pub enable_drawingboard: bool,
+}
+
+impl Default for DrawShapePlugin {
+    fn default() -> Self {
+        Self {
+            always_enabled: true,
+            enable_drawingboard: true,
+        }
+    }
+}
 
 impl Plugin for DrawShapePlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.insert_resource(DefaultPluginState::<ShapeDrawRaycastSet>::default());
-        app.add_plugin(BaseDrawShapePlugin);
+        app.add_plugin(BaseDrawShapePlugin {
+            always_enabled: self.always_enabled,
+            enable_drawingboard: self.enable_drawingboard,
+        });
     }
 }
 
-/// [`DrawShapePlugin`] but with a debugcursor for the raycasting
-pub struct DrawShapeDebugPlugin;
+/// [`DrawShapePlugin`] but with a debugcursor for the raycasting.
+/// Will by default always have drawing and drawingboard enabled
+pub struct DrawShapeDebugPlugin {
+    pub always_enabled: bool,
+    pub enable_drawingboard: bool,
+}
+
+impl Default for DrawShapeDebugPlugin {
+    fn default() -> Self {
+        Self {
+            always_enabled: true,
+            enable_drawingboard: true,
+        }
+    }
+}
 
 impl Plugin for DrawShapeDebugPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         app.insert_resource(
             DefaultPluginState::<ShapeDrawRaycastSet>::default().with_debug_cursor(),
         );
-        app.add_plugin(BaseDrawShapePlugin);
-    }
-}
-
-#[derive(Resource)]
-pub struct BoxDrawResources {
-    pub material: Handle<StandardMaterial>,
-    /// The box created must have an initial size which is then changed
-    pub initial_size: f32,
-    /// The box will start with an initial height
-    pub initial_height: f32,
-}
-
-impl FromWorld for BoxDrawResources {
-    fn from_world(world: &mut World) -> Self {
-        let world = world.cell();
-        let mut materials = world
-            .get_resource_mut::<Assets<StandardMaterial>>()
-            .unwrap();
-
-        let material = materials.add(StandardMaterial {
-            base_color: bevy::prelude::Color::rgba(
-                0x10 as f32 / 0xFF as f32,
-                0x10 as f32 / 0xFF as f32,
-                0xF0 as f32 / 0xFF as f32,
-                0.5,
-            ),
-            alpha_mode: AlphaMode::Blend,
-            ..Default::default()
+        app.add_plugin(BaseDrawShapePlugin {
+            always_enabled: self.always_enabled,
+            enable_drawingboard: self.enable_drawingboard,
         });
-
-        Self {
-            material,
-            initial_size: 0.01,
-            initial_height: 0.2,
-        }
     }
 }
