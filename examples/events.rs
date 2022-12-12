@@ -8,8 +8,8 @@ use bevy::{
 };
 use bevy_input::Input;
 use bevy_shape_draw::{
-    DrawShapeDebugPlugin, DrawShapeEvent, DrawStateEvent, DrawingboardEvent, Shape,
-    ShapeDrawRaycastMesh, ShapeDrawRaycastSource,
+    DrawShapeDebugPlugin, DrawShapeEvent, DrawShapeRaycastMesh, DrawShapeRaycastSource,
+    DrawStateEvent, DrawingboardEvent, Shape,
 };
 
 fn main() {
@@ -40,7 +40,7 @@ fn setup(
             material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
             ..Default::default()
         })
-        .insert(ShapeDrawRaycastMesh::default());
+        .insert(DrawShapeRaycastMesh::default());
 
     // cube
     commands.spawn(PbrBundle {
@@ -67,7 +67,7 @@ fn setup(
             transform: Transform::from_xyz(1., 2.5, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
             ..Default::default()
         })
-        .insert(ShapeDrawRaycastSource::new());
+        .insert(DrawShapeRaycastSource::new());
 }
 
 fn spawned(mut event_reader: EventReader<DrawShapeEvent>, query: Query<&Transform>) {

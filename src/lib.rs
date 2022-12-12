@@ -10,7 +10,7 @@ pub use draw::{BoxDrawResources, DrawShapeEvent, DrawStateEvent, Shape};
 use drawingboard::spawn_drawingboard;
 pub use drawingboard::{DrawingboardEvent, DrawingboardResource};
 use raycast::ShapeDrawRaycastSet;
-pub use raycast::{ShapeDrawRaycastMesh, ShapeDrawRaycastSource};
+pub use raycast::{DrawShapeRaycastMesh, DrawShapeRaycastSource};
 
 struct BaseDrawShapePlugin {
     pub always_enabled: bool,

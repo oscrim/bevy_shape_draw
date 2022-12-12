@@ -1,9 +1,10 @@
 use bevy::prelude::{
     info, shape, AlphaMode, Assets, Camera, Commands, Component, Entity, EventReader, FromWorld,
-    Handle, Mesh, PbrBundle, Query, Res, Resource, StandardMaterial, Transform, With, World,
+    GlobalTransform, Handle, Mesh, PbrBundle, Query, Res, Resource, StandardMaterial, Transform,
+    With, World,
 };
 
-use crate::ShapeDrawRaycastMesh;
+use crate::DrawShapeRaycastMesh;
 
 pub enum DrawingboardEvent {
     /// Contains the height to spawn the drawing board on
@@ -50,7 +51,7 @@ pub(crate) fn spawn_drawingboard(
     resource: Res<DrawingboardResource>,
     mut commands: Commands,
     mut reader: EventReader<DrawingboardEvent>,
-    camera: Query<&Transform, With<Camera>>,
+    camera: Query<&GlobalTransform, With<Camera>>,
     drawingboard: Query<Entity, With<Drawingboard>>,
 ) {
     for ev in reader.iter() {
@@ -60,8 +61,11 @@ pub(crate) fn spawn_drawingboard(
                     continue;
                 }
                 for transform in camera.iter() {
-                    let transform =
-                        Transform::from_xyz(transform.translation.x, *y, transform.translation.x);
+                    let transform = Transform::from_xyz(
+                        transform.translation().x,
+                        *y,
+                        transform.translation().x,
+                    );
 
                     info!("Spawning drawingboard at {}", transform.translation);
 
@@ -73,7 +77,7 @@ pub(crate) fn spawn_drawingboard(
                             ..Default::default()
                         })
                         .insert(Drawingboard)
-                        .insert(ShapeDrawRaycastMesh::default());
+                        .insert(DrawShapeRaycastMesh::default());
                     break;
                 }
             }

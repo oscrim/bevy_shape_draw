@@ -5,7 +5,7 @@ use bevy::{
     },
     DefaultPlugins,
 };
-use bevy_shape_draw::{DrawShapeDebugPlugin, ShapeDrawRaycastMesh, ShapeDrawRaycastSource};
+use bevy_shape_draw::{DrawShapeDebugPlugin, DrawShapeRaycastMesh, DrawShapeRaycastSource};
 
 fn main() {
     let mut app = App::new();
@@ -28,7 +28,7 @@ fn setup(
             material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
             ..Default::default()
         })
-        .insert(ShapeDrawRaycastMesh::default());
+        .insert(DrawShapeRaycastMesh::default());
 
     // cube
     commands.spawn(PbrBundle {
@@ -55,5 +55,5 @@ fn setup(
             transform: Transform::from_xyz(1., 2.5, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
             ..Default::default()
         })
-        .insert(ShapeDrawRaycastSource::new());
+        .insert(DrawShapeRaycastSource::new());
 }
