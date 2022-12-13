@@ -52,15 +52,18 @@ pub(crate) fn keep_enabled(
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum DrawShapeEvent {
     /// Spawned is sent when a new shape is drawn, containing the newly created entity
     Spawned(Entity),
+    Redrawing(Entity),
     Finished(Entity),
 }
 
 pub enum DrawStateEvent {
     Enable,
+    /// Enables Drawing if disabled and will use the provided entity to store the shape
+    Redraw(Entity),
     Disable,
 }
 
@@ -73,7 +76,7 @@ pub enum Shape {
 
 #[derive(Resource)]
 pub(crate) enum DrawingState {
-    Idle,
+    Idle(Option<Entity>),
     Disabled,
 }
 
@@ -92,7 +95,8 @@ pub(crate) fn draw_state(
 ) {
     for ev in event_reader.iter() {
         match ev {
-            DrawStateEvent::Enable => *state = DrawingState::Idle,
+            DrawStateEvent::Redraw(e) => *state = DrawingState::Idle(Some(*e)),
+            DrawStateEvent::Enable => *state = DrawingState::Idle(None),
             DrawStateEvent::Disable => *state = DrawingState::Disabled,
         }
     }
@@ -116,10 +120,10 @@ pub(crate) fn draw_box(
         next_event = event_queue.pop();
     }
 
-    match *state {
-        DrawingState::Idle => {}
+    let redraw = match *state {
+        DrawingState::Idle(e) => e,
         _ => return,
-    }
+    };
 
     if keys.just_pressed(MouseButton::Left) {
         let mut transform = Transform::default();
@@ -149,8 +153,15 @@ pub(crate) fn draw_box(
             resources.initial_size,
         )));
 
-        let e = commands
-            .spawn(PbrBundle {
+        let new_drawing = redraw.is_none();
+
+        let mut e_commands = match redraw {
+            Some(e) => commands.entity(e),
+            None => commands.spawn_empty(),
+        };
+
+        let e = e_commands
+            .insert(PbrBundle {
                 mesh: mesh.clone(),
                 material: resources.material.clone(),
                 transform,
@@ -163,7 +174,12 @@ pub(crate) fn draw_box(
                 resources.initial_size,
             )))
             .id();
-        event_queue.push(DrawShapeEvent::Spawned(e));
+
+        if new_drawing {
+            event_queue.push(DrawShapeEvent::Spawned(e));
+        } else {
+            event_queue.push(DrawShapeEvent::Redrawing(e));
+        }
     } else if keys.just_released(MouseButton::Left) {
         let e = edit_box.get_single().unwrap();
         commands.entity(e).remove::<Editing>();
@@ -180,8 +196,8 @@ pub(crate) fn edit_box(
     state: Res<DrawingState>,
 ) {
     match *state {
-        DrawingState::Idle => {}
         DrawingState::Disabled => return,
+        _ => {}
     }
 
     if keys.pressed(MouseButton::Left) {

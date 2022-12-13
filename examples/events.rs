@@ -1,8 +1,8 @@
 use bevy::{
     prelude::{
-        info, shape, App, Assets, Camera3dBundle, Color, Commands, EventReader, EventWriter,
-        KeyCode, Mesh, PbrBundle, PointLight, PointLightBundle, Query, Res, ResMut,
-        StandardMaterial, Transform, Vec3,
+        info, shape, App, Assets, Camera3dBundle, Color, Commands, Entity, EventReader,
+        EventWriter, KeyCode, Local, Mesh, PbrBundle, PointLight, PointLightBundle, Query, Res,
+        ResMut, StandardMaterial, Transform, Vec3,
     },
     DefaultPlugins,
 };
@@ -24,6 +24,7 @@ fn main() {
     app.add_system(spawned);
     app.add_system(finished);
     app.add_system(start_drawing);
+    app.add_system(redraw_drawing);
     app.add_system(stop_drawing);
     app.run();
 }
@@ -105,6 +106,35 @@ fn start_drawing(
     if keys.just_pressed(KeyCode::Q) {
         drawingboard_writer.send(DrawingboardEvent::Spawn(0.0));
         state_writer.send(DrawStateEvent::Enable);
+    }
+}
+
+fn redraw_drawing(
+    mut drawingboard_writer: EventWriter<DrawingboardEvent>,
+    mut state_writer: EventWriter<DrawStateEvent>,
+    mut shape_event: EventReader<DrawShapeEvent>,
+    mut last_shape: Local<Option<Entity>>,
+    keys: Res<Input<KeyCode>>,
+) {
+    for ev in shape_event.iter() {
+        info!("{ev:?}");
+        match ev {
+            DrawShapeEvent::Spawned(e) => {
+                *last_shape = Some(*e);
+                info!("Last Shape Saved");
+            }
+            _ => {}
+        }
+    }
+
+    let e = match *last_shape {
+        Some(e) => e,
+        None => return,
+    };
+
+    if keys.just_pressed(KeyCode::W) {
+        drawingboard_writer.send(DrawingboardEvent::Spawn(0.0));
+        state_writer.send(DrawStateEvent::Redraw(e));
     }
 }
 
