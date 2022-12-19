@@ -14,8 +14,8 @@ pub enum DrawingboardEvent {
 
 #[derive(Resource)]
 pub struct DrawingboardResource {
-    mesh: Handle<Mesh>,
-    material: Handle<StandardMaterial>,
+    pub mesh: Handle<Mesh>,
+    pub material: Handle<StandardMaterial>,
 }
 
 impl FromWorld for DrawingboardResource {

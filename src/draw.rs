@@ -157,16 +157,15 @@ pub(crate) fn draw_box(
 
         let mut e_commands = match redraw {
             Some(e) => commands.entity(e),
-            None => commands.spawn_empty(),
-        };
-
-        let e = e_commands
-            .insert(PbrBundle {
+            None => commands.spawn(PbrBundle {
                 mesh: mesh.clone(),
                 material: resources.material.clone(),
                 transform,
                 ..Default::default()
-            })
+            }),
+        };
+
+        let e = e_commands
             .insert(Editing(origin))
             .insert(Shape::Box(Vec3::new(
                 resources.initial_size,
@@ -192,7 +191,6 @@ pub(crate) fn edit_box(
     query: Query<&Intersection<ShapeDrawRaycastSet>>,
     keys: Res<Input<MouseButton>>,
     mut meshes: ResMut<Assets<Mesh>>,
-    resources: Res<BoxDrawResources>,
     state: Res<DrawingState>,
 ) {
     match *state {
@@ -224,21 +222,22 @@ pub(crate) fn edit_box(
                 let x = dx.abs();
                 let z = dz.abs();
 
-                match &mut *shape {
+                let height = match &mut *shape {
                     Shape::Box(size) => {
                         size.x = x;
-                        size.y = resources.initial_height;
                         size.z = z;
+                        size.y
                     }
-                }
+                };
 
-                let b = shape::Box::new(x, resources.initial_height, z);
+                let b = shape::Box::new(x, height, z);
 
                 debug!("Box: {:?}", b);
 
                 *mesh = Mesh::from(b);
                 transform.translation.x = p2.x - (dx / 2.0);
                 transform.translation.z = p2.z - (dz / 2.0);
+                transform.translation.y = opposite.y + (height / 2.0);
             }
         }
     }
