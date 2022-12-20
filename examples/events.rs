@@ -1,8 +1,9 @@
 use bevy::{
+    log::{Level, LogPlugin},
     prelude::{
-        info, shape, App, Assets, Camera3dBundle, Color, Commands, Entity, EventReader,
-        EventWriter, KeyCode, Local, Mesh, PbrBundle, PointLight, PointLightBundle, Query, Res,
-        ResMut, StandardMaterial, Transform, Vec3,
+        error, info, shape, warn, App, Assets, Camera3dBundle, Color, Commands, Entity,
+        EventReader, EventWriter, KeyCode, Local, Mesh, PbrBundle, PluginGroup, PointLight,
+        PointLightBundle, Query, Res, ResMut, StandardMaterial, TouchInput, Transform, Vec3,
     },
     DefaultPlugins,
 };
@@ -76,7 +77,6 @@ fn spawned(mut event_reader: EventReader<DrawShapeEvent>, query: Query<&Transfor
         match ev {
             DrawShapeEvent::Spawned(e) => {
                 let transform = query.get(*e).unwrap();
-                info!("New Box spawned at {}", transform.translation);
             }
             _ => {}
         }

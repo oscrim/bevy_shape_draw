@@ -1,9 +1,9 @@
 use bevy::prelude::{
-    debug, shape, AlphaMode, Assets, Commands, Component, Entity, EventReader, EventWriter,
+    debug, shape, warn, AlphaMode, Assets, Commands, Component, Entity, EventReader, EventWriter,
     FromWorld, Handle, Local, Mesh, MouseButton, PbrBundle, Query, Res, ResMut, Resource,
-    StandardMaterial, Transform, Vec3, With, World,
+    StandardMaterial, TouchInput, Transform, Vec3, With, World,
 };
-use bevy_input::Input;
+use bevy_input::{touch::TouchPhase, Input};
 use bevy_mod_raycast::Intersection;
 
 use crate::ShapeDrawRaycastSet;
@@ -102,6 +102,9 @@ pub(crate) fn draw_state(
     }
 }
 
+#[derive(Resource, Default)]
+pub(crate) struct TouchId(Option<u64>);
+
 pub(crate) fn draw_box(
     mut meshes: ResMut<Assets<Mesh>>,
     query: Query<&Intersection<ShapeDrawRaycastSet>>,
@@ -110,8 +113,11 @@ pub(crate) fn draw_box(
     mut commands: Commands,
     edit_box: Query<Entity, With<Editing>>,
     mut event_writer: EventWriter<DrawShapeEvent>,
+    mut touch_events: EventReader<TouchInput>,
     mut event_queue: Local<Vec<DrawShapeEvent>>,
     state: Res<DrawingState>,
+    mut touch_id: ResMut<TouchId>,
+    mut touch_started: Local<bool>,
 ) {
     // We wait one frame before sending out the event to give time to spawn the entity
     let mut next_event = event_queue.pop();
@@ -125,7 +131,35 @@ pub(crate) fn draw_box(
         _ => return,
     };
 
-    if keys.just_pressed(MouseButton::Left) {
+    let mut started = keys.just_pressed(MouseButton::Left);
+    let mut ended = keys.just_released(MouseButton::Left);
+
+    for ev in touch_events.iter() {
+        if let Some(id) = touch_id.0 {
+            if id != ev.id {
+                continue;
+            }
+        }
+
+        match ev.phase {
+            TouchPhase::Started => {
+                touch_id.0 = Some(ev.id);
+            }
+            TouchPhase::Ended | TouchPhase::Cancelled => {
+                if touch_id.0.is_some() {
+                    ended = true;
+                    *touch_started = false;
+                    touch_id.0 = None;
+                }
+            }
+            TouchPhase::Moved => {
+                started = !*touch_started;
+                *touch_started = true;
+            }
+        }
+    }
+
+    if started {
         let mut transform = Transform::default();
         let mut origin = Vec3::default();
 
@@ -179,10 +213,11 @@ pub(crate) fn draw_box(
         } else {
             event_queue.push(DrawShapeEvent::Redrawing(e));
         }
-    } else if keys.just_released(MouseButton::Left) {
-        let e = edit_box.get_single().unwrap();
-        commands.entity(e).remove::<Editing>();
-        event_queue.push(DrawShapeEvent::Finished(e));
+    } else if ended {
+        if let Ok(e) = edit_box.get_single() {
+            commands.entity(e).remove::<Editing>();
+            event_queue.push(DrawShapeEvent::Finished(e));
+        }
     }
 }
 
@@ -192,13 +227,29 @@ pub(crate) fn edit_box(
     keys: Res<Input<MouseButton>>,
     mut meshes: ResMut<Assets<Mesh>>,
     state: Res<DrawingState>,
+    mut touch_events: EventReader<TouchInput>,
+    touch_id: Res<TouchId>,
 ) {
     match *state {
         DrawingState::Disabled => return,
         _ => {}
     }
 
-    if keys.pressed(MouseButton::Left) {
+    let mut update = keys.pressed(MouseButton::Left);
+
+    for ev in touch_events.iter() {
+        if let Some(id) = touch_id.0 {
+            if id != ev.id {
+                warn!("Wrong touch id");
+                continue;
+            }
+        }
+
+        update = true;
+        break;
+    }
+
+    if update {
         if let Ok((handle, mut transform, edit_origin, mut shape)) = e_box.get_single_mut() {
             if let Some(mesh) = meshes.get_mut(handle) {
                 let mut opposite = Vec3::default();
@@ -239,6 +290,10 @@ pub(crate) fn edit_box(
                 transform.translation.z = p2.z - (dz / 2.0);
                 transform.translation.y = opposite.y + (height / 2.0);
             }
+        } else {
+            /* TODO: There is currently a bug that when you are in the browser and are using the Device toolbar for touch.
+            If you spam enough boxes it will eventually fall into a state that only returns the warning below */
+            warn!("No editbox found");
         }
     }
 }

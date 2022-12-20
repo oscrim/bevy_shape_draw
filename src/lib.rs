@@ -25,11 +25,17 @@ impl Plugin for BaseDrawShapePlugin {
                 CoreStage::First,
                 raycast::update_raycast_with_cursor
                     .before(RaycastSystem::BuildRays::<ShapeDrawRaycastSet>),
+            )
+            .add_system_to_stage(
+                CoreStage::First,
+                raycast::update_raycast_with_touch
+                    .before(RaycastSystem::BuildRays::<ShapeDrawRaycastSet>),
             );
 
         // Drawing
         app.init_resource::<BoxDrawResources>()
             .init_resource::<DrawingState>()
+            .init_resource::<TouchId>()
             .add_event::<DrawShapeEvent>()
             .add_event::<DrawStateEvent>()
             .add_system_to_stage(CoreStage::First, draw_box)
