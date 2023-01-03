@@ -1,5 +1,5 @@
 use bevy::{
-    prelude::{EventReader, Local, Query, TouchInput},
+    prelude::{Camera, EventReader, Local, Query, TouchInput},
     window::CursorMoved,
 };
 use bevy_input::touch::TouchPhase;
@@ -25,61 +25,32 @@ pub(crate) fn update_raycast_with_cursor(
 
 pub(crate) fn update_raycast_with_touch(
     mut touch: EventReader<TouchInput>,
-    mut query: Query<&mut DrawShapeRaycastSource>,
+    mut query: Query<(&mut DrawShapeRaycastSource, &Camera)>,
     mut current_touch: Local<Option<u64>>,
 ) {
-    for ev in touch.iter() {
+    'events: for ev in touch.iter() {
         if let Some(id) = *current_touch {
             if id != ev.id {
                 continue;
             }
         }
-        #[cfg(target_arch = "wasm32")]
         let mut touch_position = ev.position;
-        #[cfg(not(target_arch = "wasm32"))]
-        let touch_position = ev.position;
-
-        #[cfg(target_arch = "wasm32")]
-        if let Some(window) = web_sys::window() {
-            let y = window
-                .document()
-                .unwrap()
-                .query_selector("canvas")
-                .unwrap()
-                .unwrap()
-                .client_height();
-
-            touch_position.y = y as f32 - touch_position.y;
-
-            for mut pick_source in &mut query {
+        for (mut pick_source, camera) in &mut query {
+            if let Some(size) = camera.logical_target_size() {
+                touch_position.y = size.y - touch_position.y;
                 pick_source.cast_method = RaycastMethod::Screenspace(touch_position);
-            }
-
-            match ev.phase {
-                TouchPhase::Moved => {}
-                TouchPhase::Started => {
-                    *current_touch = Some(ev.id);
-                }
-                TouchPhase::Ended | TouchPhase::Cancelled => {
-                    *current_touch = None;
-                }
+            } else {
+                continue 'events;
             }
         }
 
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            for mut pick_source in &mut query {
-                pick_source.cast_method = RaycastMethod::Screenspace(touch_position);
+        match ev.phase {
+            TouchPhase::Moved => {}
+            TouchPhase::Started => {
+                *current_touch = Some(ev.id);
             }
-
-            match ev.phase {
-                TouchPhase::Moved => {}
-                TouchPhase::Started => {
-                    *current_touch = Some(ev.id);
-                }
-                TouchPhase::Ended | TouchPhase::Cancelled => {
-                    *current_touch = None;
-                }
+            TouchPhase::Ended | TouchPhase::Cancelled => {
+                *current_touch = None;
             }
         }
     }

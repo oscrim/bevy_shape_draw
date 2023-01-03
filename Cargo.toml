@@ -17,9 +17,6 @@ bevy = { version= "0.9", default-features = false}
 bevy_input = { version = "0.9", features = ["serialize"] }
 bevy_mod_raycast = "0.7"
 
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-web-sys = { version = "0.3.4", features = ['Headers','Location', 'Window', 'Document', 'Element']}
-
 [dev-dependencies]
 bevy = { version= "0.9", default-features = false, features = ["bevy_core_pipeline", "bevy_render", "bevy_winit", "x11"]}
 
