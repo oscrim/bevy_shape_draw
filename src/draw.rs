@@ -158,60 +158,52 @@ pub(crate) fn draw_box(
             }
         }
     }
+    let intersect_position = get_closest_intersection(query);
 
     if started {
-        let mut transform = Transform::default();
-        let mut origin = Vec3::default();
+        // only do something if we actually have an intersection position
+        if let Some(intersect_position) = intersect_position {
+            let mut transform = Transform::default();
+            transform.translation = intersect_position
+                + Vec3::new(
+                    resources.initial_size / 2.,
+                    resources.initial_height / 2.,
+                    resources.initial_size / 2.,
+                );
+            let origin: Vec3 = intersect_position;
 
-        for intersection in &query {
-            debug!(
-                "Distance {:?}, Position {:?}",
-                intersection.distance(),
-                intersection.position()
-            );
-
-            if let Some(pos) = intersection.position() {
-                transform.translation = *pos
-                    + Vec3::new(
-                        resources.initial_size / 2.,
-                        resources.initial_height / 2.,
-                        resources.initial_size / 2.,
-                    );
-                origin = *pos;
-            }
-        }
-
-        let mesh = meshes.add(Mesh::from(shape::Box::new(
-            resources.initial_size,
-            resources.initial_height,
-            resources.initial_size,
-        )));
-
-        let new_drawing = redraw.is_none();
-
-        let mut e_commands = match redraw {
-            Some(e) => commands.entity(e),
-            None => commands.spawn(PbrBundle {
-                mesh: mesh.clone(),
-                material: resources.material.clone(),
-                transform,
-                ..Default::default()
-            }),
-        };
-
-        let e = e_commands
-            .insert(Editing(origin))
-            .insert(Shape::Box(Vec3::new(
+            let mesh = meshes.add(Mesh::from(shape::Box::new(
                 resources.initial_size,
                 resources.initial_height,
                 resources.initial_size,
-            )))
-            .id();
+            )));
 
-        if new_drawing {
-            event_queue.push(DrawShapeEvent::Spawned(e));
-        } else {
-            event_queue.push(DrawShapeEvent::Redrawing(e));
+            let new_drawing = redraw.is_none();
+
+            let mut e_commands = match redraw {
+                Some(e) => commands.entity(e),
+                None => commands.spawn(PbrBundle {
+                    mesh: mesh.clone(),
+                    material: resources.material.clone(),
+                    transform,
+                    ..Default::default()
+                }),
+            };
+
+            let e = e_commands
+                .insert(Editing(origin))
+                .insert(Shape::Box(Vec3::new(
+                    resources.initial_size,
+                    resources.initial_height,
+                    resources.initial_size,
+                )))
+                .id();
+
+            if new_drawing {
+                event_queue.push(DrawShapeEvent::Spawned(e));
+            } else {
+                event_queue.push(DrawShapeEvent::Redrawing(e));
+            }
         }
     } else if ended {
         if let Ok(e) = edit_box.get_single() {
@@ -219,6 +211,29 @@ pub(crate) fn draw_box(
             event_queue.push(DrawShapeEvent::Finished(e));
         }
     }
+}
+
+fn get_closest_intersection<'a>(
+    query: Query<&'a Intersection<ShapeDrawRaycastSet>>,
+) -> Option<Vec3> {
+    let mut intersect_position = None;
+    // large value, we will only pick the closest pick-source in the case of multiple pick-sources
+    let mut distance = f32::INFINITY;
+    for intersection in &query {
+        debug!(
+            "Distance {:?}, Position {:?}",
+            intersection.distance(),
+            intersection.position()
+        );
+        //
+        if let (Some(dist), Some(pos)) = (intersection.distance(), intersection.position()) {
+            if dist < distance {
+                distance = dist;
+                intersect_position = Some(*pos);
+            }
+        }
+    }
+    intersect_position
 }
 
 pub(crate) fn edit_box(
