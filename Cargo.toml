@@ -8,7 +8,7 @@ authors = [
 edition = "2021"
 description = "A shape drawing tool for Bevy"
 license = "MIT"
-repository = "https://https://github.com/oscrim/bevy_shape_draw"
+repository = "https://github.com/oscrim/bevy_shape_draw"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
