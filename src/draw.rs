@@ -112,6 +112,7 @@ pub(crate) fn draw_box(
     resources: Res<BoxDrawResources>,
     mut commands: Commands,
     edit_box: Query<Entity, With<Editing>>,
+    shapes: Query<&Shape>,
     mut event_writer: EventWriter<DrawShapeEvent>,
     mut touch_events: EventReader<TouchInput>,
     mut event_queue: Local<Vec<DrawShapeEvent>>,
@@ -129,6 +130,17 @@ pub(crate) fn draw_box(
     let redraw = match *state {
         DrawingState::Idle(e) => e,
         _ => return,
+    };
+
+    let height = if let Some(e) = redraw {
+        let shape = shapes.get(e);
+        if let Ok(Shape::Box(dim)) = shape {
+            dim.y
+        } else {
+            resources.initial_height
+        }
+    } else {
+        resources.initial_height
     };
 
     let mut started = keys.just_pressed(MouseButton::Left);
@@ -167,14 +179,14 @@ pub(crate) fn draw_box(
             transform.translation = intersect_position
                 + Vec3::new(
                     resources.initial_size / 2.,
-                    resources.initial_height / 2.,
+                    height / 2.,
                     resources.initial_size / 2.,
                 );
             let origin: Vec3 = intersect_position;
 
             let mesh = meshes.add(Mesh::from(shape::Box::new(
                 resources.initial_size,
-                resources.initial_height,
+                height,
                 resources.initial_size,
             )));
 
@@ -194,7 +206,7 @@ pub(crate) fn draw_box(
                 .insert(Editing(origin))
                 .insert(Shape::Box(Vec3::new(
                     resources.initial_size,
-                    resources.initial_height,
+                    height,
                     resources.initial_size,
                 )))
                 .id();
