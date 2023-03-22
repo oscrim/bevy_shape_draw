@@ -38,7 +38,10 @@ impl FromWorld for DrawingboardResource {
 
         let mut meshes = world.get_resource_mut::<Assets<Mesh>>().unwrap();
 
-        let mesh = meshes.add(Mesh::from(shape::Plane { size: 500.0 }));
+        let mesh = meshes.add(Mesh::from(shape::Plane {
+            size: 500.0,
+            ..Default::default()
+        }));
 
         Self { mesh, material }
     }

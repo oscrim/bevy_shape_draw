@@ -2,7 +2,7 @@ mod draw;
 mod drawingboard;
 mod raycast;
 
-use bevy::prelude::{CoreStage, IntoSystemDescriptor, Plugin};
+use bevy::prelude::{CoreSet, IntoSystemConfig, IntoSystemConfigs, Plugin};
 use bevy_mod_raycast::{DefaultPluginState, DefaultRaycastingPlugin, RaycastSystem};
 
 use draw::*;
@@ -21,14 +21,12 @@ impl Plugin for BaseDrawShapePlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         // Raycasting
         app.add_plugin(DefaultRaycastingPlugin::<ShapeDrawRaycastSet>::default())
-            .add_system_to_stage(
-                CoreStage::First,
-                raycast::update_raycast_with_cursor
-                    .before(RaycastSystem::BuildRays::<ShapeDrawRaycastSet>),
-            )
-            .add_system_to_stage(
-                CoreStage::First,
-                raycast::update_raycast_with_touch
+            .add_systems(
+                (
+                    raycast::update_raycast_with_cursor,
+                    raycast::update_raycast_with_touch,
+                )
+                    .in_base_set(CoreSet::First)
                     .before(RaycastSystem::BuildRays::<ShapeDrawRaycastSet>),
             );
 
@@ -38,7 +36,7 @@ impl Plugin for BaseDrawShapePlugin {
             .init_resource::<TouchId>()
             .add_event::<DrawShapeEvent>()
             .add_event::<DrawStateEvent>()
-            .add_system_to_stage(CoreStage::First, draw_box)
+            .add_system(draw_box.in_base_set(CoreSet::First))
             .add_system(edit_box)
             .add_system(draw_state);
 
