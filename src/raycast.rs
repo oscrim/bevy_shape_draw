@@ -1,11 +1,14 @@
 use bevy::{
     prelude::{Camera, EventReader, Local, Query, TouchInput},
+    reflect::Reflect,
     window::CursorMoved,
 };
 use bevy_input::touch::TouchPhase;
 use bevy_mod_raycast::{RaycastMesh, RaycastMethod, RaycastSource};
 
+#[derive(Debug, Clone, Reflect)]
 pub struct ShapeDrawRaycastSet;
+
 pub type DrawShapeRaycastMesh = RaycastMesh<ShapeDrawRaycastSet>;
 pub type DrawShapeRaycastSource = RaycastSource<ShapeDrawRaycastSet>;
 
