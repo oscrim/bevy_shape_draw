@@ -1,11 +1,9 @@
-use bevy::prelude::{
-    info, shape, AlphaMode, Assets, Camera, Commands, Component, Entity, EventReader, FromWorld,
-    GlobalTransform, Handle, Mesh, PbrBundle, Query, Res, Resource, StandardMaterial, Transform,
-    With, World,
-};
+use bevy::ecs::event::Event;
+use bevy::prelude::*;
 
 use crate::DrawShapeRaycastMesh;
 
+#[derive(Event)]
 pub enum DrawingboardEvent {
     /// Contains the height to spawn the drawing board on
     Spawn(f32),

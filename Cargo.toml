@@ -13,9 +13,8 @@ repository = "https://github.com/oscrim/bevy_shape_draw"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = { version= "0.10", default-features = false}
-bevy_input = { version = "0.10", features = ["serialize"] }
-bevy_mod_raycast = "0.8"
+bevy = { version= "0.11", default-features = false }
+bevy_mod_raycast = "0.13"
 
 [dev-dependencies]
-bevy = { version= "0.10", default-features = false, features = ["bevy_core_pipeline", "bevy_render", "bevy_winit", "x11"]}
+bevy = { version= "0.11", default-features = true }

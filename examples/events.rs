@@ -1,13 +1,4 @@
-use bevy::{
-    log::{Level, LogPlugin},
-    prelude::{
-        error, info, shape, warn, App, Assets, Camera3dBundle, Color, Commands, Entity,
-        EventReader, EventWriter, KeyCode, Local, Mesh, PbrBundle, PluginGroup, PointLight,
-        PointLightBundle, Query, Res, ResMut, StandardMaterial, TouchInput, Transform, Vec3,
-    },
-    DefaultPlugins,
-};
-use bevy_input::Input;
+use bevy::{prelude::*, DefaultPlugins};
 use bevy_shape_draw::{
     DrawShapeDebugPlugin, DrawShapeEvent, DrawShapeRaycastMesh, DrawShapeRaycastSource,
     DrawStateEvent, DrawingboardEvent, Shape,
@@ -16,17 +7,22 @@ use bevy_shape_draw::{
 fn main() {
     let mut app = App::new();
     app.add_plugins(DefaultPlugins);
-    app.add_plugin(DrawShapeDebugPlugin {
+    app.add_plugins(DrawShapeDebugPlugin {
         always_enabled: false,
         ..Default::default()
     });
 
-    app.add_startup_system(setup);
-    app.add_system(spawned);
-    app.add_system(finished);
-    app.add_system(start_drawing);
-    app.add_system(redraw_drawing);
-    app.add_system(stop_drawing);
+    app.add_systems(Startup, setup);
+    app.add_systems(
+        Update,
+        (
+            spawned,
+            finished,
+            start_drawing,
+            redraw_drawing,
+            stop_drawing,
+        ),
+    );
     app.run();
 }
 

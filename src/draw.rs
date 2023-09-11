@@ -1,10 +1,5 @@
-use bevy::prelude::{
-    debug, shape, warn, AlphaMode, Assets, Commands, Component, Entity, EventReader, EventWriter,
-    FromWorld, Handle, Local, Mesh, MouseButton, PbrBundle, Query, Res, ResMut, Resource,
-    StandardMaterial, TouchInput, Transform, Vec3, With, World,
-};
-use bevy_input::{touch::TouchPhase, Input};
-use bevy_mod_raycast::Intersection;
+use bevy::{input::touch::TouchPhase, prelude::*};
+use bevy_mod_raycast::prelude::*;
 
 use crate::ShapeDrawRaycastSet;
 
@@ -52,7 +47,7 @@ pub(crate) fn keep_enabled(
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Event)]
 pub enum DrawShapeEvent {
     /// Spawned is sent when a new shape is drawn, containing the newly created entity
     Spawned(Entity),
@@ -60,6 +55,7 @@ pub enum DrawShapeEvent {
     Finished(Entity),
 }
 
+#[derive(Event)]
 pub enum DrawStateEvent {
     Enable,
     /// Enables Drawing if disabled and will use the provided entity to store the shape
@@ -107,7 +103,8 @@ pub(crate) struct TouchId(Option<u64>);
 
 pub(crate) fn draw_box(
     mut meshes: ResMut<Assets<Mesh>>,
-    query: Query<&Intersection<ShapeDrawRaycastSet>>,
+
+    mut query: Query<&mut RaycastSource<ShapeDrawRaycastSet>>,
     keys: Res<Input<MouseButton>>,
     resources: Res<BoxDrawResources>,
     mut commands: Commands,
@@ -157,7 +154,7 @@ pub(crate) fn draw_box(
             TouchPhase::Started => {
                 touch_id.0 = Some(ev.id);
             }
-            TouchPhase::Ended | TouchPhase::Cancelled => {
+            TouchPhase::Ended | TouchPhase::Canceled => {
                 if touch_id.0.is_some() {
                     ended = true;
                     *touch_started = false;
@@ -170,11 +167,12 @@ pub(crate) fn draw_box(
             }
         }
     }
-    let intersect_position = get_closest_intersection(query);
 
     if started {
         // only do something if we actually have an intersection position
-        if let Some(intersect_position) = intersect_position {
+        if let Some((_intersect_entity, intersectdata)) = query.single().get_nearest_intersection()
+        {
+            let intersect_position = intersectdata.position();
             let mut transform = Transform::default();
             transform.translation = intersect_position
                 + Vec3::new(
@@ -225,32 +223,9 @@ pub(crate) fn draw_box(
     }
 }
 
-fn get_closest_intersection<'a>(
-    query: Query<&'a Intersection<ShapeDrawRaycastSet>>,
-) -> Option<Vec3> {
-    let mut intersect_position = None;
-    // large value, we will only pick the closest pick-source in the case of multiple pick-sources
-    let mut distance = f32::INFINITY;
-    for intersection in &query {
-        debug!(
-            "Distance {:?}, Position {:?}",
-            intersection.distance(),
-            intersection.position()
-        );
-        //
-        if let (Some(dist), Some(pos)) = (intersection.distance(), intersection.position()) {
-            if dist < distance {
-                distance = dist;
-                intersect_position = Some(*pos);
-            }
-        }
-    }
-    intersect_position
-}
-
 pub(crate) fn edit_box(
     mut e_box: Query<(&Handle<Mesh>, &mut Transform, &Editing, &mut Shape)>,
-    query: Query<&Intersection<ShapeDrawRaycastSet>>,
+    query: Query<&RaycastSource<ShapeDrawRaycastSet>>,
     keys: Res<Input<MouseButton>>,
     mut meshes: ResMut<Assets<Mesh>>,
     state: Res<DrawingState>,
@@ -281,9 +256,10 @@ pub(crate) fn edit_box(
             if let Some(mesh) = meshes.get_mut(handle) {
                 let mut opposite = Vec3::default();
 
-                for intersection in &query {
-                    if let Some(pos) = intersection.position() {
-                        opposite = *pos;
+                for intersection in query.iter() {
+                    if let Some((_e, data)) = intersection.get_nearest_intersection() {
+                        let pos = data.position();
+                        opposite = pos;
                     }
                 }
 

@@ -2,8 +2,8 @@ mod draw;
 mod drawingboard;
 mod raycast;
 
-use bevy::prelude::{CoreSet, IntoSystemConfig, IntoSystemConfigs, Plugin};
-use bevy_mod_raycast::{DefaultPluginState, DefaultRaycastingPlugin, RaycastSystem};
+use bevy::prelude::*;
+use bevy_mod_raycast::{DefaultRaycastingPlugin, RaycastSystem};
 
 use draw::*;
 pub use draw::{BoxDrawResources, DrawShapeEvent, DrawStateEvent, Shape};
@@ -20,13 +20,13 @@ struct BaseDrawShapePlugin {
 impl Plugin for BaseDrawShapePlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
         // Raycasting
-        app.add_plugin(DefaultRaycastingPlugin::<ShapeDrawRaycastSet>::default())
+        app.add_plugins(DefaultRaycastingPlugin::<ShapeDrawRaycastSet>::default())
             .add_systems(
+                Update,
                 (
                     raycast::update_raycast_with_cursor,
                     raycast::update_raycast_with_touch,
                 )
-                    .in_base_set(CoreSet::First)
                     .before(RaycastSystem::BuildRays::<ShapeDrawRaycastSet>),
             );
 
@@ -36,19 +36,19 @@ impl Plugin for BaseDrawShapePlugin {
             .init_resource::<TouchId>()
             .add_event::<DrawShapeEvent>()
             .add_event::<DrawStateEvent>()
-            .add_system(draw_box.in_base_set(CoreSet::First))
-            .add_system(edit_box)
-            .add_system(draw_state);
+            .add_systems(Update, edit_box)
+            .add_systems(Update, draw_box)
+            .add_systems(Update, draw_state);
 
         // Drawingboard
         if self.enable_drawingboard {
             app.init_resource::<DrawingboardResource>()
                 .add_event::<DrawingboardEvent>()
-                .add_system(spawn_drawingboard);
+                .add_systems(Update, spawn_drawingboard);
         }
 
         if self.always_enabled {
-            app.add_system(keep_enabled);
+            app.add_systems(Update, keep_enabled);
         }
     }
 }
@@ -71,7 +71,6 @@ impl Default for DrawShapePlugin {
 
 impl Plugin for DrawShapePlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.insert_resource(DefaultPluginState::<ShapeDrawRaycastSet>::default());
         app.add_plugin(BaseDrawShapePlugin {
             always_enabled: self.always_enabled,
             enable_drawingboard: self.enable_drawingboard,
@@ -97,9 +96,6 @@ impl Default for DrawShapeDebugPlugin {
 
 impl Plugin for DrawShapeDebugPlugin {
     fn build(&self, app: &mut bevy::prelude::App) {
-        app.insert_resource(
-            DefaultPluginState::<ShapeDrawRaycastSet>::default().with_debug_cursor(),
-        );
         app.add_plugin(BaseDrawShapePlugin {
             always_enabled: self.always_enabled,
             enable_drawingboard: self.enable_drawingboard,

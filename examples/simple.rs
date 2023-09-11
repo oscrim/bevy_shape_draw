@@ -1,18 +1,12 @@
-use bevy::{
-    prelude::{
-        shape, App, Assets, Camera3dBundle, Color, Commands, Mesh, PbrBundle, PointLight,
-        PointLightBundle, ResMut, StandardMaterial, Transform, Vec3,
-    },
-    DefaultPlugins,
-};
+use bevy::prelude::*;
 use bevy_shape_draw::{DrawShapeDebugPlugin, DrawShapeRaycastMesh, DrawShapeRaycastSource};
 
 fn main() {
     let mut app = App::new();
     app.add_plugins(DefaultPlugins);
-    app.add_plugin(DrawShapeDebugPlugin::default());
+    app.add_plugins(DrawShapeDebugPlugin::default());
 
-    app.add_startup_system(setup);
+    app.add_systems(Startup, setup);
     app.run();
 }
 

@@ -1,9 +1,9 @@
 use bevy::{
+    input::touch::TouchPhase,
     prelude::{Camera, EventReader, Local, Query, TouchInput},
     reflect::Reflect,
     window::CursorMoved,
 };
-use bevy_input::touch::TouchPhase;
 use bevy_mod_raycast::{RaycastMesh, RaycastMethod, RaycastSource};
 
 #[derive(Debug, Clone, Reflect)]
@@ -52,7 +52,7 @@ pub(crate) fn update_raycast_with_touch(
             TouchPhase::Started => {
                 *current_touch = Some(ev.id);
             }
-            TouchPhase::Ended | TouchPhase::Cancelled => {
+            TouchPhase::Ended | TouchPhase::Canceled => {
                 *current_touch = None;
             }
         }
